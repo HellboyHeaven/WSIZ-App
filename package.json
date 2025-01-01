@@ -1,0 +1,17 @@
+{
+  "name": "wsiz-app",
+  "version": "1.0.0",
+  "description": "wsiz app rework",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "wsiz",
+    "schedule",
+    "university",
+    "school"
+  ],
+  "author": "Katya and Yersultan",
+  "license": "CC-BY-NC-ND-4.0"
+}
