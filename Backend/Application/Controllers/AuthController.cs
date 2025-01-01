@@ -3,8 +3,10 @@ using Backend.Core.DTOs.Auth;
 using Backend.Core.Exceptions;
 using Backend.Core.Models.Users;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
 
 namespace Backend.Application.Controllers;
 
@@ -61,8 +63,13 @@ public class AuthController(AuthService authService) : ControllerBase
     [HttpPost("sign-in")]
     public async Task<ActionResult<User>> LogIn(LoginDto loginDto)
     {
-        var response = await _authService.SignInAsync(loginDto);
-        return Ok(response);
+        try {
+            var response = await _authService.SignInAsync(loginDto);
+            return Ok(response);
+        }
+        catch(UnauthorizedAccessException error){
+            return BadRequest(error.Message);
+        }
     }
 
     [HttpPost("sign-out")]

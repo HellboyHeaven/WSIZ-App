@@ -9,22 +9,32 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Reflection;
 using System.Text;
+using DotNetEnv;
+
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
 var configuration = builder.Configuration;
 
-services.AddCors(options =>
-{
-    options.AddPolicy("AllowSpecificOrigin", policy =>
-    {
-        policy.WithOrigins("https://example.com")  // Разрешить только с этого источника
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
-});
 
-// ������������ ����������� �������, ��������, ��� ������������� ������������ � DI-����������
+
+Env.Load();
+configuration.AddEnvironmentVariables();
+
+
+// services.AddCors(options =>
+// {
+//     options.AddPolicy("AllowSpecificOrigin", policy =>
+//     {
+//         policy.WithOrigins("https://example.com")  // Разрешить только с этого источника
+//               .AllowAnyHeader()
+//               .AllowAnyMethod();
+//     });
+// });
+
+
+
+
 services.AddAutoMapper(typeof(Program));
 services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
 services.AddSingleton(configuration);
@@ -40,6 +50,8 @@ ConfigureServices(services);
 
 
 // Add services to the container.
+
+
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -48,6 +60,7 @@ builder.Services.AddDbContext<UniversityDbContext>(options =>
     configuration.GetConnectionString(nameof(UniversityDbContext)),
     o => o.MapEnum<LessonState>("lesson_state").MapEnum<SubjectType>("subject_type")
     ));
+
 
 
 
@@ -74,7 +87,7 @@ services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 
-app.UseCors("AllowSpecificOrigin");
+// app.UseCors("AllowSpecificOrigin");
 
 
 // Configure the HTTP request pipeline.
