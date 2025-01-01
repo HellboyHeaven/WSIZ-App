@@ -1,43 +1,54 @@
+using Backend.Core.Attributes;
+using Backend.Core.Models;
+using Backend.Core.Models.Users;
 using Backend.Data;
-using Backend.Models;
-using Backend.Repositories;
-using Backend.Repositories.Interfaces;
-using Backend.Services;
+using Backend.Data.Repositories;
+using Backend.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
 var configuration = builder.Configuration;
 
+services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigin", policy =>
+    {
+        policy.WithOrigins("https://example.com")  // Р Р°Р·СЂРµС€РёС‚СЊ С‚РѕР»СЊРєРѕ СЃ СЌС‚РѕРіРѕ РёСЃС‚РѕС‡РЅРёРєР°
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ DI-пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+services.AddAutoMapper(typeof(Program));
+services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
+services.AddSingleton(configuration);
 
 
-// Регистрируем необходимые сервисы, например, для использования конфигурации в DI-контейнере
-builder.Services.Configure<JwtSettings>(configuration.GetSection("Jwt"));
-builder.Services.AddSingleton(configuration);
 
-// Регистрация репозиториев
-services.AddScoped<ICourseRepository, CourseRepository>();
-services.AddScoped<IGroupRepository, GroupRepository>();
-services.AddScoped<ILessonRepository, LessonRepository>();
-services.AddScoped<IUserRepository, UserRepository>();
-services.AddScoped<IStudentRepository, StudentRepository>();
-services.AddScoped<ITeacherRepository, TeacherRepository>();
-services.AddScoped<ISubjectRepository, SubjectRepository>();
-services.AddScoped<IGradeRepository, GradeRepository>();
-services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
-services.AddScoped<TokenService>();
-services.AddScoped<AuthService>();
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+
+
+ConfigureRepositories(services);
+ConfigureServices(services);
+
+
 
 // Add services to the container.
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddDbContext<UniversityDbContext>(options =>
-   options.UseNpgsql(configuration.GetConnectionString(nameof(UniversityDbContext))));
+   options.UseNpgsql(
+    configuration.GetConnectionString(nameof(UniversityDbContext)),
+    o => o.MapEnum<LessonState>("lesson_state").MapEnum<SubjectType>("subject_type")
+    ));
+
 
 
 services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -63,7 +74,7 @@ services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 
-
+app.UseCors("AllowSpecificOrigin");
 
 
 // Configure the HTTP request pipeline.
@@ -81,3 +92,43 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+
+void ConfigureServices(IServiceCollection services)
+{
+   
+    var serviceTypes = Assembly.GetExecutingAssembly().GetTypes()
+        .Where(t => t.GetCustomAttribute<ServiceAttribute>() != null)
+        .ToList();
+
+    foreach (var serviceType in serviceTypes)
+    {
+        services.AddScoped(serviceType);
+    }
+
+
+}
+
+void ConfigureRepositories(IServiceCollection services)
+{
+    var typesWithRepositoryAttribute = Assembly.GetExecutingAssembly().GetTypes()
+          .Where(t => t.GetCustomAttribute<RepositoryAttribute>() != null)
+          .ToList();
+
+
+    services.AddScoped<IUserRepository<User>, UserRepository<User>>();
+
+
+
+    //services.AddScoped(typeof(IUserRepository<>), typeof(UserRepository<>));
+
+    foreach (var type in typesWithRepositoryAttribute)
+    {
+        var interfaces = type.GetInterfaces().ToList();
+        if (interfaces.Any())
+        {
+            services.AddScoped(interfaces.Last(), type);
+        }
+    }
+}
+

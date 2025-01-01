@@ -1,6 +1,6 @@
-@Backend_HostAddress = http://localhost:5214
+@Backend_HostAddress = http://192.168.8.189:5214
 
-GET {{Backend_HostAddress}}/student/
+GET {{Backend_HostAddress}}
 Accept: application/json
 
 ###
